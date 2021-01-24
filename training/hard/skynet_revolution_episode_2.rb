@@ -36,15 +36,7 @@ class Graph
     distances[src] = 0
 
     until vertices.empty?
-      nearest_vertex = vertices.reduce do |a, b|
-        if distances[a] && (!distances[b] || distances[a] < distances[b])
-          a
-        else
-          b
-        end
-      end
-
-      break unless distances[nearest_vertex]
+      nearest_vertex = vertices.min_by { |v| distances[v] }
 
       filtered_neighbor_edges(vertices, nearest_vertex, sinks).each do |neighbor_edge|
         neighbor_vertex = neighbor_edge.dst
