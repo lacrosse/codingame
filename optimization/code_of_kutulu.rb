@@ -57,6 +57,7 @@ spawns = grid.select { |_, c| c == ?w }.map(&:first)
 # wanderer_spawn_time: how many turns the wanderer take to spawn, always 3 until wood 1
 # wanderer_life_time: how many turns the wanderer is on map after spawning, always 40 until wood 1
 sanity_loss_lonely, sanity_loss_group, wanderer_spawn_time, wanderer_life_time = gets.split(" ").collect { |x| x.to_i }
+plan = 2
 
 loop do
   explorers = []
@@ -88,13 +89,18 @@ loop do
   me = explorers[0]
   other_explorers = explorers[1..]
 
+  my_wanderers = wanderers.reject { |w| w[:target] < 0 }.select { |w| explorers.find { |exp| exp[:id] == w[:target] }[:coords] == me[:coords] }
+
   threats = if wanderers.empty?
       spawns
     else
-      wanderers.map { |w| w[:coords] }
+      my_wanderers.map { |w| w[:coords] }
     end
 
   bfs_from_threats = graph.bfs(threats)
+
+  STDERR.puts "From threats"
+  STDERR.puts bfs_from_threats.inspect
 
   safe = bfs_from_threats.select { |cs|
     !other_explorers.any? || other_explorers.any? { |exp| dist(exp[:coords], cs) <= 2 }
@@ -103,7 +109,29 @@ loop do
   STDERR.puts "Safe"
   STDERR.puts safe.inspect
 
+  # bfs_from_me = graph.bfs([me[:coords]])
+
+  # bfs_from_me_up_to_threats = bfs_from_me.take_while { |cs| !my_wanderers.any? { |w| w[:coords] == cs } }
+
+  # STDERR.puts "From me"
+  # STDERR.puts bfs_from_me.inspect
+  # STDERR.puts "Up to"
+  # STDERR.puts bfs_from_me_up_to_threats.inspect
+
+  # safer = safe & bfs_from_me_up_to_threats
+
   safest = safe.last
 
-  puts "MOVE %d %d" % safest
+  if safest && safest != me[:coords]
+    puts "MOVE %d %d" % safest
+  else
+    others_in_range = other_explorers.count { |exp| dist(exp[:coords], me[:coords]) <= 2 }
+
+    if plan > 0 && others_in_range > 1
+      plan -= 1
+      puts "WAIT plan?"
+    else
+      puts "WAIT waiting to be disciplined"
+    end
+  end
 end
